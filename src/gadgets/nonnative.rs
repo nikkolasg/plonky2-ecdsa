@@ -703,7 +703,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct NonNativeMultiplicationGenerator<F: RichField + Extendable<D>, const D: usize, FF: Field>
 {
     a: NonNativeTarget<FF>,
