@@ -16,7 +16,7 @@ use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 use plonky2_u32::gadgets::multiple_comparison::list_le_u32_circuit;
 use plonky2_u32::witness::{GeneratedValuesU32, WitnessU32};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BigUintTarget {
     pub limbs: Vec<U32Target>,
 }
@@ -343,7 +343,7 @@ impl<F: PrimeField> GeneratedValuesBigUint<F> for GeneratedValues<F> {
 
 use std::string::String;
 #[derive(Debug)]
-struct BigUintDivRemGenerator<F: RichField + Extendable<D>, const D: usize> {
+pub struct BigUintDivRemGenerator<F: RichField + Extendable<D>, const D: usize> {
     a: BigUintTarget,
     b: BigUintTarget,
     div: BigUintTarget,

@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 use plonky2::plonk::circuit_data::CommonCircuitData;
 use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 use plonky2_u32::serialization::{ReadU32, WriteU32};
+use std::ops::Deref;
 
 use num::{BigUint, Integer, One, Zero};
 use plonky2::field::extension::Extendable;
@@ -22,7 +23,7 @@ use crate::gadgets::biguint::{
     BigUintTarget, CircuitBuilderBiguint, GeneratedValuesBigUint, WitnessBigUint,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct NonNativeTarget<FF: Field> {
     pub value: BigUintTarget,
     pub _phantom: PhantomData<FF>,
@@ -272,7 +273,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderNonNative<F, D>
         self.add_simple_generator(NonNativeMultipleAddsGenerator::<F, D, FF> {
             summands: summands.clone(),
             sum: sum.clone(),
-            overflow,
+            overflow: DefaultU32Target(overflow),
             _phantom: PhantomData,
         });
 
@@ -468,8 +469,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderNonNative<F, D>
     }
 }
 
-#[derive(Debug)]
-struct NonNativeAdditionGenerator<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> {
+#[derive(Debug, Clone, Default)]
+pub struct NonNativeAdditionGenerator<F: RichField + Extendable<D>, const D: usize, FF: PrimeField>
+{
     a: NonNativeTarget<FF>,
     b: NonNativeTarget<FF>,
     sum: NonNativeTarget<FF>,
@@ -543,13 +545,30 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
         }
     }
 }
+#[derive(Clone, Debug)]
+struct DefaultU32Target(U32Target);
+impl Deref for DefaultU32Target {
+    type Target = U32Target;
 
-#[derive(Debug)]
-struct NonNativeMultipleAddsGenerator<F: RichField + Extendable<D>, const D: usize, FF: PrimeField>
-{
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl Default for DefaultU32Target {
+    fn default() -> Self {
+        Self(U32Target(Target::default()))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct NonNativeMultipleAddsGenerator<
+    F: RichField + Extendable<D>,
+    const D: usize,
+    FF: PrimeField,
+> {
     summands: Vec<NonNativeTarget<FF>>,
     sum: NonNativeTarget<FF>,
-    overflow: U32Target,
+    overflow: DefaultU32Target,
     _phantom: PhantomData<F>,
 }
 
@@ -585,7 +604,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
         let overflow = overflow_biguint.to_u64_digits()[0] as u32;
 
         out_buffer.set_biguint_target(&self.sum.value, &sum_reduced);
-        out_buffer.set_u32_target(self.overflow, overflow);
+        out_buffer.set_u32_target(*self.overflow, overflow);
     }
 
     fn id(&self) -> String {
@@ -598,7 +617,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
             sum.serialize(dst, common_data)?;
         }
         self.sum.serialize(dst, common_data)?;
-        dst.write_target_u32(self.overflow)?;
+        dst.write_target_u32(*self.overflow)?;
         Ok(())
     }
 
@@ -612,14 +631,14 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
                 .map(|_| NonNativeTarget::<FF>::deserialize(src, common_data))
                 .collect::<IoResult<_>>()?,
             sum: NonNativeTarget::<FF>::deserialize(src, common_data)?,
-            overflow: src.read_target_u32()?,
+            overflow: DefaultU32Target(src.read_target_u32()?),
             _phantom: PhantomData,
         })
     }
 }
 
 #[derive(Debug)]
-struct NonNativeSubtractionGenerator<F: RichField + Extendable<D>, const D: usize, FF: Field> {
+pub struct NonNativeSubtractionGenerator<F: RichField + Extendable<D>, const D: usize, FF: Field> {
     a: NonNativeTarget<FF>,
     b: NonNativeTarget<FF>,
     diff: NonNativeTarget<FF>,
@@ -685,7 +704,8 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
 }
 
 #[derive(Debug)]
-struct NonNativeMultiplicationGenerator<F: RichField + Extendable<D>, const D: usize, FF: Field> {
+pub struct NonNativeMultiplicationGenerator<F: RichField + Extendable<D>, const D: usize, FF: Field>
+{
     a: NonNativeTarget<FF>,
     b: NonNativeTarget<FF>,
     prod: NonNativeTarget<FF>,
@@ -749,7 +769,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
 }
 
 #[derive(Debug)]
-struct NonNativeInverseGenerator<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> {
+pub struct NonNativeInverseGenerator<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> {
     x: NonNativeTarget<FF>,
     inv: BigUintTarget,
     div: BigUintTarget,
