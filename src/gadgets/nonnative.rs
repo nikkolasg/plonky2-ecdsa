@@ -3,8 +3,7 @@ use alloc::vec::Vec;
 use core::marker::PhantomData;
 use plonky2::plonk::circuit_data::CommonCircuitData;
 use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
-use plonky2_u32::serialization::{ReadU32, WriteU32};
-use std::ops::Deref;
+//use plonky2_u32::serialization::{ReadU32, WriteU32};
 
 use num::{BigUint, Integer, One, Zero};
 use plonky2::field::extension::Extendable;
@@ -15,9 +14,12 @@ use plonky2::iop::target::{BoolTarget, Target};
 use plonky2::iop::witness::{PartitionWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::util::ceil_div_usize;
-use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
-use plonky2_u32::gadgets::range_check::range_check_u32_circuit;
-use plonky2_u32::witness::GeneratedValuesU32;
+use plonky2_crypto::u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
+use plonky2_crypto::u32::gadgets::range_check::range_check_u32_circuit;
+use plonky2_crypto::u32::witness::GeneratedValuesU32;
+//use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
+//use plonky2_u32::gadgets::range_check::range_check_u32_circuit;
+//use plonky2_u32::witness::GeneratedValuesU32;
 
 use crate::gadgets::biguint::{
     BigUintTarget, CircuitBuilderBiguint, GeneratedValuesBigUint, WitnessBigUint,
@@ -273,7 +275,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderNonNative<F, D>
         self.add_simple_generator(NonNativeMultipleAddsGenerator::<F, D, FF> {
             summands: summands.clone(),
             sum: sum.clone(),
-            overflow: DefaultU32Target(overflow),
+            overflow,
             _phantom: PhantomData,
         });
 
@@ -545,20 +547,6 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
         }
     }
 }
-#[derive(Clone, Debug)]
-struct DefaultU32Target(U32Target);
-impl Deref for DefaultU32Target {
-    type Target = U32Target;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl Default for DefaultU32Target {
-    fn default() -> Self {
-        Self(U32Target(Target::default()))
-    }
-}
 
 #[derive(Debug, Clone, Default)]
 pub struct NonNativeMultipleAddsGenerator<
@@ -568,7 +556,7 @@ pub struct NonNativeMultipleAddsGenerator<
 > {
     summands: Vec<NonNativeTarget<FF>>,
     sum: NonNativeTarget<FF>,
-    overflow: DefaultU32Target,
+    overflow: U32Target,
     _phantom: PhantomData<F>,
 }
 
@@ -604,7 +592,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
         let overflow = overflow_biguint.to_u64_digits()[0] as u32;
 
         out_buffer.set_biguint_target(&self.sum.value, &sum_reduced);
-        out_buffer.set_u32_target(*self.overflow, overflow);
+        out_buffer.set_u32_target(self.overflow, overflow);
     }
 
     fn id(&self) -> String {
@@ -617,7 +605,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
             sum.serialize(dst, common_data)?;
         }
         self.sum.serialize(dst, common_data)?;
-        dst.write_target_u32(*self.overflow)?;
+        dst.write_target(self.overflow.0)?;
         Ok(())
     }
 
@@ -631,7 +619,7 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
                 .map(|_| NonNativeTarget::<FF>::deserialize(src, common_data))
                 .collect::<IoResult<_>>()?,
             sum: NonNativeTarget::<FF>::deserialize(src, common_data)?,
-            overflow: DefaultU32Target(src.read_target_u32()?),
+            overflow: U32Target(src.read_target()?),
             _phantom: PhantomData,
         })
     }

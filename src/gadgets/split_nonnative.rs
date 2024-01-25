@@ -7,7 +7,8 @@ use plonky2::field::types::Field;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::target::Target;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
+//use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
+use plonky2_crypto::u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 
 use crate::gadgets::biguint::BigUintTarget;
 use crate::gadgets::nonnative::NonNativeTarget;

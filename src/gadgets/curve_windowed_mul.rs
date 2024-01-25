@@ -10,7 +10,8 @@ use plonky2::hash::keccak::KeccakHash;
 use plonky2::iop::target::{BoolTarget, Target};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::config::{GenericHashOut, Hasher};
-use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
+use plonky2_crypto::u32::arithmetic_u32::{CircuitBuilderU32, U32Target};
+//use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 
 use crate::curve::curve_types::{Curve, CurveScalar};
 use crate::gadgets::biguint::BigUintTarget;

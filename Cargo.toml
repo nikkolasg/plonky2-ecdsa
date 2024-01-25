@@ -14,12 +14,11 @@ itertools = { version = "0.10.0" }
 plonky2_maybe_rayon = { version = "0.1.0" }
 num = { version = "0.4.0" }
 plonky2 = { version = "0.1.4"}
-plonky2_u32 = { version = "0.1.0" }
 serde = { version = "1.0", features = ["derive"] }
+plonky2_crypto = { git = "https://github.com/nikkolasg/plonky2-crypto" , branch = "feat/serialization" }
 
 [dev-dependencies]
 rand = { version = "0.8.4", features = ["getrandom"] }
 
 [patch.crates-io]
 plonky2 = { git = "https://github.com/nikkolasg/plonky2" }
-plonky2_u32 = { git = "https://github.com/nikkolasg/plonky2-u32" }
