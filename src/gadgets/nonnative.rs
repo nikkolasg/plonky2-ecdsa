@@ -36,7 +36,7 @@ impl<FF: Field> NonNativeTarget<FF> {
         self.value.serialize(dst, common_data)?;
         Ok(())
     }
-    fn deserialize<F: RichField + Extendable<D>, const D: usize>(
+    pub fn deserialize<F: RichField + Extendable<D>, const D: usize>(
         src: &mut Buffer,
         common_data: &CommonCircuitData<F, D>,
     ) -> IoResult<Self> {

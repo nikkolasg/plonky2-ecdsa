@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use plonky2::plonk::circuit_data::CommonCircuitData;
-use plonky2::util::serialization::{Buffer, IoResult};
+use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 
 use plonky2::field::extension::Extendable;
 use plonky2::field::secp256k1_base::Secp256K1Base;
@@ -132,18 +132,30 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
     }
 
     fn id(&self) -> String {
-        todo!()
+        "GLVDecompositionGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        self.k.serialize(dst, common_data)?;
+        self.k1.serialize(dst, common_data)?;
+        self.k2.serialize(dst, common_data)?;
+        dst.write_target_bool(self.k1_neg)?;
+        dst.write_target_bool(self.k2_neg)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        Ok(Self {
+            k: NonNativeTarget::deserialize(src, common_data)?,
+            k1: NonNativeTarget::deserialize(src, common_data)?,
+            k2: NonNativeTarget::deserialize(src, common_data)?,
+            k1_neg: src.read_target_bool()?,
+            k2_neg: src.read_target_bool()?,
+            _phantom: PhantomData,
+        })
     }
 }
 
