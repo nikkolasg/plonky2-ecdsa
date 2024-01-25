@@ -102,11 +102,22 @@ pub trait CircuitBuilderBiguint<F: RichField + Extendable<D>, const D: usize> {
     fn div_biguint(&mut self, a: &BigUintTarget, b: &BigUintTarget) -> BigUintTarget;
 
     fn rem_biguint(&mut self, a: &BigUintTarget, b: &BigUintTarget) -> BigUintTarget;
+
+    fn is_equal_biguint(&mut self, a: &BigUintTarget, b: &BigUintTarget) -> BoolTarget;
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderBiguint<F, D>
     for CircuitBuilder<F, D>
 {
+    fn is_equal_biguint(&mut self, a: &BigUintTarget, b: &BigUintTarget) -> BoolTarget {
+        assert!(a.limbs.len() == b.limbs.len());
+        let mut t = self._true();
+        for (l1, l2) in a.limbs.iter().zip(b.limbs.iter()) {
+            let eq = self.is_equal(l1.0, l2.0);
+            t = self.and(t, eq);
+        }
+        t
+    }
     fn constant_biguint(&mut self, value: &BigUint) -> BigUintTarget {
         let limb_values = value.to_u32_digits();
         let limbs = limb_values.iter().map(|&l| self.constant_u32(l)).collect();
