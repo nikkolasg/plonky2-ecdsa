@@ -2,7 +2,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use plonky2::plonk::circuit_data::CommonCircuitData;
-use plonky2::util::serialization::{Buffer, IoResult};
+use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
+use plonky2_u32::serialization::{ReadU32, WriteU32};
 
 use num::{BigUint, Integer, One, Zero};
 use plonky2::field::extension::Extendable;
@@ -25,6 +26,26 @@ use crate::gadgets::biguint::{
 pub struct NonNativeTarget<FF: Field> {
     pub value: BigUintTarget,
     pub _phantom: PhantomData<FF>,
+}
+impl<FF: Field> NonNativeTarget<FF> {
+    pub fn serialize<F: RichField + Extendable<D>, const D: usize>(
+        &self,
+        dst: &mut Vec<u8>,
+        common_data: &CommonCircuitData<F, D>,
+    ) -> IoResult<()> {
+        self.value.serialize(dst, common_data)?;
+        Ok(())
+    }
+    fn deserialize<F: RichField + Extendable<D>, const D: usize>(
+        src: &mut Buffer,
+        common_data: &CommonCircuitData<F, D>,
+    ) -> IoResult<Self> {
+        let value = BigUintTarget::deserialize(src, common_data)?;
+        Ok(NonNativeTarget {
+            value,
+            _phantom: PhantomData,
+        })
+    }
 }
 
 pub trait CircuitBuilderNonNative<F: RichField + Extendable<D>, const D: usize> {
@@ -488,18 +509,28 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 
     fn id(&self) -> String {
-        todo!()
+        "NonNativeAdditionGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        self.a.serialize(dst, common_data)?;
+        self.b.serialize(dst, common_data)?;
+        self.sum.serialize(dst, common_data)?;
+        dst.write_target_bool(self.overflow)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        Ok(Self {
+            a: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            b: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            sum: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            overflow: src.read_target_bool()?,
+            _phantom: PhantomData,
+        })
     }
 
     fn adapter(self) -> SimpleGeneratorAdapter<F, Self, D>
@@ -558,18 +589,32 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 
     fn id(&self) -> String {
-        todo!()
+        "NonNativeMultipleAddsGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        dst.write_usize(self.summands.len())?;
+        for sum in self.summands.iter() {
+            sum.serialize(dst, common_data)?;
+        }
+        self.sum.serialize(dst, common_data)?;
+        dst.write_target_u32(self.overflow)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        let n = src.read_usize()?;
+        Ok(Self {
+            summands: (0..n)
+                .map(|_| NonNativeTarget::<FF>::deserialize(src, common_data))
+                .collect::<IoResult<_>>()?,
+            sum: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            overflow: src.read_target_u32()?,
+            _phantom: PhantomData,
+        })
     }
 }
 
@@ -614,18 +659,28 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 
     fn id(&self) -> String {
-        todo!()
+        "NonNativeSubtractionGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        self.a.serialize(dst, common_data)?;
+        self.b.serialize(dst, common_data)?;
+        self.diff.serialize(dst, common_data)?;
+        dst.write_target_bool(self.overflow)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        Ok(Self {
+            a: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            b: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            diff: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            overflow: src.read_target_bool()?,
+            _phantom: PhantomData,
+        })
     }
 }
 
@@ -668,18 +723,28 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 
     fn id(&self) -> String {
-        todo!()
+        "NonNativeMultiplicationGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        self.a.serialize(dst, common_data)?;
+        self.b.serialize(dst, common_data)?;
+        self.prod.serialize(dst, common_data)?;
+        self.overflow.serialize(dst, common_data)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        Ok(Self {
+            a: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            b: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            prod: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            overflow: BigUintTarget::deserialize(src, common_data)?,
+            _phantom: PhantomData,
+        })
     }
 }
 
@@ -713,18 +778,26 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 
     fn id(&self) -> String {
-        todo!()
+        "NonNativeInverseGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        self.x.serialize(dst, common_data)?;
+        self.inv.serialize(dst, common_data)?;
+        self.div.serialize(dst, common_data)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        Ok(Self {
+            x: NonNativeTarget::<FF>::deserialize(src, common_data)?,
+            inv: BigUintTarget::deserialize(src, common_data)?,
+            div: BigUintTarget::deserialize(src, common_data)?,
+            _phantom: PhantomData,
+        })
     }
 }
 

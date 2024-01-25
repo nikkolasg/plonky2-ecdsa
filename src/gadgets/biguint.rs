@@ -2,7 +2,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use plonky2::plonk::circuit_data::CommonCircuitData;
-use plonky2::util::serialization::{Buffer, IoResult};
+use plonky2::util::serialization::{Buffer, IoError, IoResult, Read, Write};
 
 use num::{BigUint, Integer, Zero};
 use plonky2::field::extension::Extendable;
@@ -28,6 +28,32 @@ impl BigUintTarget {
 
     pub fn get_limb(&self, i: usize) -> U32Target {
         self.limbs[i]
+    }
+
+    pub fn serialize<F: RichField + Extendable<D>, const D: usize>(
+        &self,
+        dst: &mut Vec<u8>,
+        _: &CommonCircuitData<F, D>,
+    ) -> IoResult<()> {
+        dst.write_usize(self.num_limbs())?;
+        for limb in &self.limbs {
+            dst.write_target(limb.0)?;
+        }
+        Ok(())
+    }
+    pub fn deserialize<F: RichField + Extendable<D>, const D: usize>(
+        src: &mut Buffer,
+        _: &CommonCircuitData<F, D>,
+    ) -> IoResult<Self>
+    where
+        Self: Sized,
+    {
+        let len = src.read_usize()?;
+        let limbs = (0..len)
+            .map(|_| src.read_target())
+            .map(|t| t.map(U32Target))
+            .collect::<Result<Vec<_>, IoError>>()?;
+        Ok(Self { limbs })
     }
 }
 
@@ -347,18 +373,32 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
     }
 
     fn id(&self) -> String {
-        todo!()
+        "BigUintDivRemGenerator".to_string()
     }
 
     fn serialize(&self, dst: &mut Vec<u8>, common_data: &CommonCircuitData<F, D>) -> IoResult<()> {
-        todo!()
+        self.a.serialize(dst, common_data)?;
+        self.b.serialize(dst, common_data)?;
+        self.div.serialize(dst, common_data)?;
+        self.rem.serialize(dst, common_data)?;
+        Ok(())
     }
 
     fn deserialize(src: &mut Buffer, common_data: &CommonCircuitData<F, D>) -> IoResult<Self>
     where
         Self: Sized,
     {
-        todo!()
+        let a = BigUintTarget::deserialize(src, common_data)?;
+        let b = BigUintTarget::deserialize(src, common_data)?;
+        let div = BigUintTarget::deserialize(src, common_data)?;
+        let rem = BigUintTarget::deserialize(src, common_data)?;
+        Ok(Self {
+            a,
+            b,
+            div,
+            rem,
+            _phantom: PhantomData,
+        })
     }
 }
 
