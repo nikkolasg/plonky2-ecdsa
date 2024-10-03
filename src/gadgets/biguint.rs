@@ -354,7 +354,7 @@ impl<F: PrimeField> GeneratedValuesBigUint<F> for GeneratedValues<F> {
 }
 
 use std::string::String;
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BigUintDivRemGenerator<F: RichField + Extendable<D>, const D: usize> {
     a: BigUintTarget,
     b: BigUintTarget,
